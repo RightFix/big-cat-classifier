@@ -1,6 +1,6 @@
 # Big Cat Classifier
 
-A deep learning image classification app that identifies big cats (Lion and Tiger) from uploaded images. Built with a custom CNN trained on TensorFlow/Keras and deployed via Streamlit.
+A deep learning image classification app that identifies big cats (Leopard and Tiger) from uploaded images. Built with a custom CNN trained on TensorFlow/Keras and deployed via Streamlit.
 
 GET 324 — Group C10 | University of Uyo
 
@@ -31,7 +31,7 @@ big-cat-classifier/
 
 - Architecture: Custom CNN with residual skip connections (4 convolutional blocks)
 - Input shape: `(224, 224, 3)`
-- Classes: `lion`, `tiger`
+- Classes: `african leopard`, `tiger`, ` clouded leopard`, `snow leopard` 
 - Loss: `categorical_crossentropy`
 - Optimizer: `Adam`
 - Callbacks: EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
@@ -40,12 +40,12 @@ big-cat-classifier/
 
 ## Dataset
 
-[Big Cats Image Classification Dataset — Kaggle](https://www.kaggle.com/datasets/patriciabrezeanu/big-cats-image-classification-dataset)
+[Big Cats Image Classification Dataset — Kaggle](https://www.kaggle.com/datasetsgpiosenka/cats-in-the-wild-image-classification)
 
 ```python
 import kagglehub
 
-path = kagglehub.dataset_download("patriciabrezeanu/big-cats-image-classification-dataset")
+path = kagglehub.dataset_download("gpiosenka/cats-in-the-wild-image-classification")
 print("Path to dataset files:", path)
 ```
 
