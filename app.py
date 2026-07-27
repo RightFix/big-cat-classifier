@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import tensorflow as tf
 import numpy as np
@@ -5,22 +6,24 @@ from PIL import Image
 
 st.set_page_config(
     page_title="Big Cat Classifier",
-    # page_icon="🐆",
     layout="centered"
 )
 
-CLASS_NAMES = ["SNOW LEOPARD","AFRICAN LEOPARD", "CLOUDED LEOPARD" , "TIGER"]  
-IMG_SIZE = (224, 224)
-MODEL_PATH = "models/tl_feature_extraction_best.keras" 
+CLASS_NAMES = ["AFRICAN LEOPARD", "CLOUDED LEOPARD", "SNOW LEOPARD", "TIGER"]  
+IMG_SIZE   = (224, 224)
+MODEL_PATH = "models/tl_feature_extraction_best.keras"
 
 @st.cache_resource
 def load_model():
+    if not os.path.exists(MODEL_PATH):
+        st.error(f"Model not found: {MODEL_PATH}")
+        st.stop()
     return tf.keras.models.load_model(MODEL_PATH)
 
 model = load_model()
 
 st.title("Big Cat Classifier")
-st.markdown("Upload an image of a leopard or tiger and the model will identify it.")
+st.markdown("Upload an image of a big cat and the model will identify it.")
 st.divider()
 
 uploaded_file = st.file_uploader(
@@ -36,19 +39,19 @@ if uploaded_file is not None:
     with col1:
         st.image(image, caption="Uploaded Image", use_container_width=True)
 
-    img_array = np.array(image.resize(IMG_SIZE))          
-    img_array = np.expand_dims(img_array, axis=0)          
+    img_array = np.array(image.resize(IMG_SIZE)).astype("float32")
+    img_array = np.expand_dims(img_array, axis=0)
 
     with st.spinner("Classifying..."):
         predictions = model.predict(img_array, verbose=0)
 
     predicted_index = np.argmax(predictions[0])
     predicted_class = CLASS_NAMES[predicted_index]
-    confidence = predictions[0][predicted_index] * 100
+    confidence      = predictions[0][predicted_index] * 100
 
     with col2:
         st.markdown("### Result")
-        st.metric(label="Predicted Class", value=predicted_class.upper())
+        st.metric(label="Predicted Class", value=predicted_class)
         st.metric(label="Confidence", value=f"{confidence:.2f}%")
 
         st.markdown("### All Probabilities")
