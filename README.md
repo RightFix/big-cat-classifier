@@ -32,7 +32,7 @@ big-cat-classifier/
 - Architecture: Custom CNN with residual skip connections (4 convolutional blocks)
 - Input shape: `(224, 224, 3)`
 - Classes: `african leopard`, `tiger`, ` clouded leopard`, `snow leopard` 
-- Loss: `categorical_crossentropy`
+- Loss: `sparse_categorical_crossentropy`
 - Optimizer: `Adam`
 - Callbacks: EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 
@@ -48,10 +48,6 @@ import kagglehub
 path = kagglehub.dataset_download("gpiosenka/cats-in-the-wild-image-classification")
 print("Path to dataset files:", path)
 ```
-
-Split ratio: 80% train / 10% validation / 10% test
-
----
 
 ## Run Locally
 
@@ -88,4 +84,5 @@ streamlit run app.py
 
 ## Contributors
 
-- [RightFix](https://github.com/RightFix) — Group C10, GET 324
+- [Righteousness Ude](https://github.com/RightFix)
+- [Nmesoma Victory](https://github.com/Nmeso1n) 
