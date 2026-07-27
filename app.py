@@ -19,8 +19,8 @@ def load_model():
 
 model = load_model()
 
-# st.title("🐆 Big Cat Classifier")
-st.markdown("Upload an image of a big cat and the model will identify it.")
+st.title("Big Cat Classifier")
+st.markdown("Upload an image of a leopard or tiger and the model will identify it.")
 st.divider()
 
 uploaded_file = st.file_uploader(
