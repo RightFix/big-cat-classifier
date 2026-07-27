@@ -9,7 +9,7 @@ st.set_page_config(
     layout="centered"
 )
 
-CLASS_NAMES = ["AFRICAN LEOPARD", "CLOUDED LEOPARD", "SNOW LEOPARD", "TIGER"]  
+CLASS_NAMES = ['TIGER', 'CLOUDED LEOPARD', 'SNOW LEOPARD', 'AFRICAN LEOPARD']  
 IMG_SIZE   = (224, 224)
 MODEL_PATH = "models/tl_feature_extraction_best.keras"
 
