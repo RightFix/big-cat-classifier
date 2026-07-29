@@ -8,7 +8,6 @@ from PIL import Image
 
 st.set_page_config(
     page_title="Big Cat Classifier",
-    page_icon="🐾",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
@@ -47,9 +46,6 @@ html, body, [data-testid="stAppViewContainer"] {
     font-size: 1.5rem;
     font-weight: 700;
     color: #0f172a;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
 }
 .app-desc {
     font-size: 0.875rem;
@@ -57,43 +53,55 @@ html, body, [data-testid="stAppViewContainer"] {
     margin-top: 0.35rem;
 }
 
-/* Modern Drag & Drop Zone Styling */
+/* ── Integrated "No Image Provided" Upload Card ── */
 [data-testid="stFileUploader"] {
     position: relative;
     margin-bottom: 1.5rem;
 }
+
+/* Hide default buttons, icons, and size limit text inside the dropzone */
+[data-testid="stFileUploaderInstructions"] small,
+[data-testid="stFileUploaderLimitData"],
+[data-testid="stFileUploaderDropzone"] button,
+[data-testid="stFileUploaderDropzone"] svg {
+    display: none !important;
+}
+
+/* Convert the uploader container into the "No Image Provided" card */
 [data-testid="stFileUploaderDropzone"] {
     background-color: #ffffff !important;
     border: 2px dashed #cbd5e1 !important;
     border-radius: 12px !important;
-    padding: 2rem 1.5rem !important;
+    padding: 3.5rem 1.5rem !important;
+    text-align: center !important;
     transition: all 0.2s ease-in-out !important;
+    cursor: pointer !important;
 }
 [data-testid="stFileUploaderDropzone"]:hover {
     border-color: #2563eb !important;
     background-color: #eff6ff !important;
 }
-/* Style text inside dropzone */
+
+/* Format text inside the dropzone to show "No image provided" UI */
 [data-testid="stFileUploaderDropzoneInstructions"] {
-    color: #475569 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 0.4rem !important;
 }
 [data-testid="stFileUploaderDropzoneInstructions"] span {
-    font-size: 0.9rem !important;
+    display: none !important;
 }
-/* Style Browse Files Button */
-[data-testid="stFileUploaderDropzone"] button {
-    background-color: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 8px !important;
-    color: #1e293b !important;
-    font-weight: 500 !important;
+[data-testid="stFileUploaderDropzoneInstructions"]::before {
+    content: "No image provided";
+    font-size: 1.05rem !important;
+    font-weight: 600 !important;
+    color: #334155 !important;
+}
+[data-testid="stFileUploaderDropzoneInstructions"]::after {
+    content: "Drag and drop an image here, or click to upload";
     font-size: 0.85rem !important;
-    padding: 0.4rem 1rem !important;
-    transition: all 0.15s ease !important;
-}
-[data-testid="stFileUploaderDropzone"] button:hover {
-    background-color: #f1f5f9 !important;
-    border-color: #94a3b8 !important;
+    color: #64748b !important;
 }
 
 /* Cards UI */
@@ -156,17 +164,6 @@ html, body, [data-testid="stAppViewContainer"] {
     transition: width 0.4s ease;
 }
 
-/* Empty State */
-.empty-state {
-    background: #ffffff;
-    border: 1px dashed #cbd5e1;
-    border-radius: 12px;
-    padding: 2.5rem 1rem;
-    text-align: center;
-    color: #64748b;
-    margin-top: 1rem;
-}
-
 /* Footer */
 .app-footer {
     border-top: 1px solid #e2e8f0;
@@ -201,22 +198,19 @@ model = load_model()
 
 st.markdown("""
 <div class="app-header">
-    <div class="app-title">
-        🐾 Big Cat Classifier
-    </div>
+    <div class="app-title">Big Cat Classifier</div>
     <div class="app-desc">
         Deep learning transfer model (MobileNetV3) tuned for distinguishing between Tigers and Leopard species.
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# ─── Drag & Drop Upload Zone ──────────────────────────────────────────────────
+# ─── "No Image Provided" Integrated Upload Area ──────────────────────────────
 
 uploaded_file = st.file_uploader(
-    "Upload an image of a big cat",
+    "",
     type=["jpg", "jpeg", "png", "webp"],
-    help="Drag and drop or select an image file to classify",
-    label_visibility="visible"
+    label_visibility="collapsed"
 )
 
 # ─── Prediction Logic & Visualisation ─────────────────────────────────────────
@@ -251,7 +245,7 @@ if uploaded_file is not None:
         <span class="status-badge {badge_class}">{badge_text}</span>
         <div class="species-title">{display_title}</div>
         <div class="conf-subtitle">
-            Highest match confidence: <strong>{confidence:.2f}%</strong> &nbsp;•&nbsp; Required threshold: {int(THRESHOLD*100)}%
+            Highest match confidence: <strong>{confidence:.2f}%</strong> &nbsp;&bull;&nbsp; Required threshold: {int(THRESHOLD*100)}%
         </div>
         <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 1rem 0;" />
         <div style="font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 0.75rem;">
@@ -264,13 +258,12 @@ if uploaded_file is not None:
         pct = prob * 100
         is_top = (name == predicted_class)
         
-        # Color coding logic
         if is_top and identified:
-            bar_color = "#2563eb"  # Primary Blue
+            bar_color = "#2563eb"
         elif is_top:
-            bar_color = "#eab308"  # Amber for low confidence top match
+            bar_color = "#eab308"
         else:
-            bar_color = "#cbd5e1"  # Muted slate grey for lower options
+            bar_color = "#cbd5e1"
 
         st.markdown(f"""
         <div>
@@ -286,22 +279,10 @@ if uploaded_file is not None:
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-else:
-    # Empty State when no image is selected
-    st.markdown("""
-    <div class="empty-state">
-        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📷</div>
-        <div style="font-weight: 500; font-size: 0.95rem; color: #334155;">No image provided</div>
-        <div style="font-size: 0.8rem; margin-top: 0.25rem;">
-            Upload or drop a picture into the container above to view the analysis.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
 # ─── Clean App Footer ─────────────────────────────────────────────────────────
 
 st.markdown("""
 <div class="app-footer">
-    Big Cat Classifier &nbsp;•&nbsp; MobileNetV3 Neural Network &nbsp;•&nbsp; Multi-Class Inference Engine
+    Big Cat Classifier &nbsp;&bull;&nbsp; MobileNetV3 Neural Network &nbsp;&bull;&nbsp; Multi-Class Inference Engine
 </div>
 """, unsafe_allow_html=True)
