@@ -61,25 +61,25 @@ html, body, [data-testid="stAppViewContainer"] {
     margin-top: 0.35rem;
 }
 
-/* ── Integrated "No Image Provided" Upload Card ── */
+/* ── Integrated Upload / Preview Zone Styling ── */
 [data-testid="stFileUploader"] {
     position: relative;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
-/* Hide file size limits text */
+/* Hide Streamlit default file instructions and small text */
 [data-testid="stFileUploaderInstructions"] small,
 [data-testid="stFileUploaderLimitData"] {
     display: none !important;
 }
 
-/* Hide upload buttons/icons ONLY when empty */
+/* Hide upload buttons/icons when empty */
 [data-testid="stFileUploaderDropzone"]:not(:has([data-testid="stFileUploaderFileData"])) button,
 [data-testid="stFileUploaderDropzone"]:not(:has([data-testid="stFileUploaderFileData"])) svg {
     display: none !important;
 }
 
-/* Convert empty uploader container into the "No Image Provided" dropzone */
+/* Base Upload Container */
 [data-testid="stFileUploaderDropzone"] {
     background-color: #ffffff !important;
     border: 2px dashed #cbd5e1 !important;
@@ -116,26 +116,13 @@ html, body, [data-testid="stAppViewContainer"] {
     color: #64748b !important;
 }
 
-/* Remove Image Action Row */
-.preview-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
-}
-.preview-header h5 {
-    margin: 0;
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #334155;
-}
-
-/* Cards UI */
+/* Result Cards UI */
 .custom-card {
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
     padding: 1.25rem;
+    margin-top: 1.25rem;
     margin-bottom: 1.25rem;
     box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
 }
@@ -207,7 +194,7 @@ html, body, [data-testid="stAppViewContainer"] {
 CLASS_NAMES = ['TIGER', 'CLOUDED LEOPARD', 'SNOW LEOPARD', 'AFRICAN LEOPARD']
 IMG_SIZE    = (224, 224)
 MODEL_PATH  = "models/tl_feature_extraction_best.keras"
-THRESHOLD   = 0.70
+THRESHOLD   = 0.80
 
 # ─── Load Model ───────────────────────────────────────────────────────────────
 
@@ -231,7 +218,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ─── "No Image Provided" Integrated Upload Area ──────────────────────────────
+# ─── Integrated Upload / Preview Container ───────────────────────────────────
 
 uploaded_file = st.file_uploader(
     "",
@@ -240,25 +227,18 @@ uploaded_file = st.file_uploader(
     key=f"uploader_{st.session_state['uploader_key']}"
 )
 
-# ─── Prediction Logic & Visualisation ─────────────────────────────────────────
+# ─── Actions & Inference ──────────────────────────────────────────────────────
 
 if uploaded_file is not None:
-    # 1. Header & Remove Image Button
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.markdown("<h5 style='margin-top: 0.4rem; color: #334155;'>Selected Image</h5>", unsafe_allow_html=True)
-    with col2:
-        st.button("Remove image", on_click=clear_file, type="secondary", use_container_width=True)
+    # Action button directly underneath the uploader box to clear the image
+    st.button("Remove image", on_click=clear_file, type="secondary", use_container_width=True)
 
-    # 2. Image Display
+    # 1. Process Loaded Image
     image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, use_container_width=True)
-
-    # 3. Preprocess Image
     img_array = np.array(image.resize(IMG_SIZE)).astype("float32")
     img_array = np.expand_dims(img_array, axis=0)
 
-    # 4. Model Inference
+    # 2. Model Inference
     with st.spinner("Analyzing visual features..."):
         predictions = model.predict(img_array, verbose=0)
 
@@ -267,7 +247,7 @@ if uploaded_file is not None:
     predicted_class = CLASS_NAMES[predicted_index]
     identified      = (confidence / 100.0) >= THRESHOLD
 
-    # 5. Result Display Card
+    # 3. Result Display Card
     badge_class = "badge-success" if identified else "badge-warning"
     badge_text  = "SPECIES IDENTIFIED" if identified else "LOW CONFIDENCE"
     display_title = predicted_class if identified else "Uncertain / Unrecognized"
