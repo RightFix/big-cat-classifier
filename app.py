@@ -181,7 +181,7 @@ html, body, [data-testid="stAppViewContainer"] {
 CLASS_NAMES = ['TIGER', 'CLOUDED LEOPARD', 'SNOW LEOPARD', 'AFRICAN LEOPARD']
 IMG_SIZE    = (224, 224)
 MODEL_PATH  = "models/tl_feature_extraction_best.keras"
-THRESHOLD   = 0.80
+THRESHOLD   = 0.70
 
 # ─── Load Model ───────────────────────────────────────────────────────────────
 
