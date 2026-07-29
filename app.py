@@ -248,7 +248,7 @@ st.markdown("""
 # ─── Integrated Upload / Preview Container ───────────────────────────────────
 
 uploaded_file = st.file_uploader(
-    #"",
+    label= "Upload File",
     type=["jpg", "jpeg", "png", "webp"],
     label_visibility="collapsed",
     key=current_key
