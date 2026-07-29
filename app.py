@@ -1,4 +1,5 @@
 import os
+import base64
 import numpy as np
 import tensorflow as tf
 import streamlit as st
@@ -12,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ─── Session State Setup for Clearing File ────────────────────────────────────
+# ─── Session State & Helper Functions ─────────────────────────────────────────
 
 if "uploader_key" not in st.session_state:
     st.session_state["uploader_key"] = 0
@@ -20,183 +21,20 @@ if "uploader_key" not in st.session_state:
 def clear_file():
     st.session_state["uploader_key"] += 1
 
-# ─── CSS Custom Styling ───────────────────────────────────────────────────────
-
-st.markdown("""
-<style>
-/* Reset Streamlit chrome */
-#MainMenu, footer, [data-testid="stToolbar"],
-[data-testid="stDecoration"], [data-testid="stStatusWidget"] { 
-    display: none !important; 
-}
-header[data-testid="stHeader"] { 
-    background: transparent; 
-}
-[data-testid="block-container"] { 
-    padding-top: 2rem; 
-    max-width: 680px; 
-}
-
-/* Base Page Styling */
-html, body, [data-testid="stAppViewContainer"] {
-    background-color: #f8fafc;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: #0f172a;
-}
-
-/* Clean Header */
-.app-header {
-    padding-bottom: 1.5rem;
-    margin-bottom: 1.5rem;
-    border-bottom: 1px solid #e2e8f0;
-}
-.app-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #0f172a;
-}
-.app-desc {
-    font-size: 0.875rem;
-    color: #64748b;
-    margin-top: 0.35rem;
-}
-
-/* ── Integrated Upload / Preview Zone Styling ── */
-[data-testid="stFileUploader"] {
-    position: relative;
-    margin-bottom: 1rem;
-}
-
-/* Hide Streamlit default file instructions and small text */
-[data-testid="stFileUploaderInstructions"] small,
-[data-testid="stFileUploaderLimitData"] {
-    display: none !important;
-}
-
-/* Hide upload buttons/icons when empty */
-[data-testid="stFileUploaderDropzone"]:not(:has([data-testid="stFileUploaderFileData"])) button,
-[data-testid="stFileUploaderDropzone"]:not(:has([data-testid="stFileUploaderFileData"])) svg {
-    display: none !important;
-}
-
-/* Base Upload Container */
-[data-testid="stFileUploaderDropzone"] {
-    background-color: #ffffff !important;
-    border: 2px dashed #cbd5e1 !important;
-    border-radius: 12px !important;
-    padding: 3rem 1.5rem !important;
-    text-align: center !important;
-    transition: all 0.2s ease-in-out !important;
-    cursor: pointer !important;
-}
-[data-testid="stFileUploaderDropzone"]:hover {
-    border-color: #2563eb !important;
-    background-color: #eff6ff !important;
-}
-
-/* Custom empty state instruction text */
-[data-testid="stFileUploaderDropzoneInstructions"] {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    gap: 0.4rem !important;
-}
-[data-testid="stFileUploaderDropzoneInstructions"] span {
-    display: none !important;
-}
-[data-testid="stFileUploaderDropzoneInstructions"]::before {
-    content: "No image provided";
-    font-size: 1.05rem !important;
-    font-weight: 600 !important;
-    color: #334155 !important;
-}
-[data-testid="stFileUploaderDropzoneInstructions"]::after {
-    content: "Drag and drop an image here, or click to upload";
-    font-size: 0.85rem !important;
-    color: #64748b !important;
-}
-
-/* Result Cards UI */
-.custom-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 1.25rem;
-    margin-top: 1.25rem;
-    margin-bottom: 1.25rem;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
-}
-
-.status-badge {
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    margin-bottom: 0.75rem;
-}
-.badge-success {
-    background-color: #dcfce7;
-    color: #15803d;
-}
-.badge-warning {
-    background-color: #fef9c3;
-    color: #a16207;
-}
-
-.species-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #0f172a;
-    margin-bottom: 0.25rem;
-}
-.conf-subtitle {
-    font-size: 0.85rem;
-    color: #64748b;
-    margin-bottom: 1.25rem;
-}
-
-/* Custom Progress Bars */
-.prob-meta {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.8rem;
-    font-weight: 500;
-    margin-bottom: 0.3rem;
-}
-.prob-track {
-    height: 8px;
-    background-color: #f1f5f9;
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: 0.85rem;
-}
-.prob-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.4s ease;
-}
-
-/* Footer */
-.app-footer {
-    border-top: 1px solid #e2e8f0;
-    padding: 1.5rem 0;
-    margin-top: 2.5rem;
-    font-size: 0.75rem;
-    color: #94a3b8;
-    text-align: center;
-}
-</style>
-""", unsafe_allow_html=True)
+def get_image_base64(uploaded_file):
+    uploaded_file.seek(0)
+    encoded = base64.b64encode(uploaded_file.read()).decode()
+    uploaded_file.seek(0)
+    return f"data:{uploaded_file.type};base64,{encoded}"
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 
 CLASS_NAMES = ['TIGER', 'CLOUDED LEOPARD', 'SNOW LEOPARD', 'AFRICAN LEOPARD']
 IMG_SIZE    = (224, 224)
 MODEL_PATH  = "models/tl_feature_extraction_best.keras"
-THRESHOLD   = 0.80
+THRESHOLD   = 0.70
 
-# ─── Load Model ───────────────────────────────────────────────────────────────
+# ─── Model Loader ─────────────────────────────────────────────────────────────
 
 @st.cache_resource
 def load_model():
@@ -206,6 +44,195 @@ def load_model():
     return tf.keras.models.load_model(MODEL_PATH)
 
 model = load_model()
+
+# ─── Current Upload Check ─────────────────────────────────────────────────────
+
+current_key = f"uploader_{st.session_state['uploader_key']}"
+bg_style = ""
+
+# Handle dynamic CSS background preview injection when a file exists
+if current_key in st.session_state and st.session_state[current_key] is not None:
+    img_b64 = get_image_base64(st.session_state[current_key])
+    bg_style = f"""
+    [data-testid="stFileUploaderDropzone"] {{
+        background-image: url("{img_b64}") !important;
+        background-size: contain !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+        min-height: 240px !important;
+    }}
+    [data-testid="stFileUploaderDropzoneInstructions"] {{
+        display: none !important;
+    }}
+    """
+
+# ─── CSS Custom Styling ───────────────────────────────────────────────────────
+
+st.markdown(f"""
+<style>
+/* Reset Streamlit chrome */
+#MainMenu, footer, [data-testid="stToolbar"],
+[data-testid="stDecoration"], [data-testid="stStatusWidget"] {{ 
+    display: none !important; 
+}}
+header[data-testid="stHeader"] {{ 
+    background: transparent; 
+}}
+[data-testid="block-container"] {{ 
+    padding-top: 2rem; 
+    max-width: 680px; 
+}}
+
+/* Base Page Styling */
+html, body, [data-testid="stAppViewContainer"] {{
+    background-color: #f8fafc;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #0f172a;
+}}
+
+/* Clean Header */
+.app-header {{
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+}}
+.app-title {{
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+}}
+.app-desc {{
+    font-size: 0.875rem;
+    color: #64748b;
+    margin-top: 0.35rem;
+}}
+
+/* ── Integrated Upload / Dropzone Styling ── */
+[data-testid="stFileUploader"] {{
+    position: relative;
+    margin-bottom: 1rem;
+}}
+
+/* Hide native file details bar and limits */
+[data-testid="stFileUploaderInstructions"] small,
+[data-testid="stFileUploaderLimitData"],
+[data-testid="stFileUploaderFileData"] {{
+    display: none !important;
+}}
+
+/* Dropzone Base */
+[data-testid="stFileUploaderDropzone"] {{
+    background-color: #ffffff !important;
+    border: 2px dashed #cbd5e1 !important;
+    border-radius: 12px !important;
+    padding: 3rem 1.5rem !important;
+    text-align: center !important;
+    transition: all 0.2s ease-in-out !important;
+    cursor: pointer !important;
+    position: relative !important;
+}}
+[data-testid="stFileUploaderDropzone"]:hover {{
+    border-color: #2563eb !important;
+    background-color: #eff6ff !important;
+}}
+
+/* Dynamic background image injection style */
+{bg_style}
+
+/* Custom Empty State Instructions */
+[data-testid="stFileUploaderDropzoneInstructions"] {{
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 0.4rem !important;
+}}
+[data-testid="stFileUploaderDropzoneInstructions"] span {{
+    display: none !important;
+}}
+[data-testid="stFileUploaderDropzoneInstructions"]::before {{
+    content: "No image provided";
+    font-size: 1.05rem !important;
+    font-weight: 600 !important;
+    color: #334155 !important;
+}}
+[data-testid="stFileUploaderDropzoneInstructions"]::after {{
+    content: "Drag and drop an image here, or click to upload";
+    font-size: 0.85rem !important;
+    color: #64748b !important;
+}}
+
+/* Result Cards UI */
+.custom-card {{
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-top: 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+}}
+
+.status-badge {{
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}}
+.badge-success {{
+    background-color: #dcfce7;
+    color: #15803d;
+}}
+.badge-warning {{
+    background-color: #fef9c3;
+    color: #a16207;
+}}
+
+.species-title {{
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.25rem;
+}}
+.conf-subtitle {{
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 1.25rem;
+}}
+
+/* Custom Progress Bars */
+.prob-meta {{
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+}}
+.prob-track {{
+    height: 8px;
+    background-color: #f1f5f9;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.85rem;
+}}
+.prob-fill {{
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}}
+
+/* Footer */
+.app-footer {{
+    border-top: 1px solid #e2e8f0;
+    padding: 1.5rem 0;
+    margin-top: 2.5rem;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-align: center;
+}}
+</style>
+""", unsafe_allow_html=True)
 
 # ─── Header Section ───────────────────────────────────────────────────────────
 
@@ -224,16 +251,14 @@ uploaded_file = st.file_uploader(
     "",
     type=["jpg", "jpeg", "png", "webp"],
     label_visibility="collapsed",
-    key=f"uploader_{st.session_state['uploader_key']}"
+    key=current_key
 )
 
-# ─── Actions & Inference ──────────────────────────────────────────────────────
-
+# Render the Remove Image action button directly under the upload preview box
 if uploaded_file is not None:
-    # Action button directly underneath the uploader box to clear the image
     st.button("Remove image", on_click=clear_file, type="secondary", use_container_width=True)
 
-    # 1. Process Loaded Image
+    # 1. Process Loaded Image for Inference
     image = Image.open(uploaded_file).convert("RGB")
     img_array = np.array(image.resize(IMG_SIZE)).astype("float32")
     img_array = np.expand_dims(img_array, axis=0)
