@@ -12,6 +12,14 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# ─── Session State Setup for Clearing File ────────────────────────────────────
+
+if "uploader_key" not in st.session_state:
+    st.session_state["uploader_key"] = 0
+
+def clear_file():
+    st.session_state["uploader_key"] += 1
+
 # ─── CSS Custom Styling ───────────────────────────────────────────────────────
 
 st.markdown("""
@@ -59,20 +67,24 @@ html, body, [data-testid="stAppViewContainer"] {
     margin-bottom: 1.5rem;
 }
 
-/* Hide default buttons, icons, and size limit text inside the dropzone */
+/* Hide file size limits text */
 [data-testid="stFileUploaderInstructions"] small,
-[data-testid="stFileUploaderLimitData"],
-[data-testid="stFileUploaderDropzone"] button,
-[data-testid="stFileUploaderDropzone"] svg {
+[data-testid="stFileUploaderLimitData"] {
     display: none !important;
 }
 
-/* Convert the uploader container into the "No Image Provided" card */
+/* Hide upload buttons/icons ONLY when empty */
+[data-testid="stFileUploaderDropzone"]:not(:has([data-testid="stFileUploaderFileData"])) button,
+[data-testid="stFileUploaderDropzone"]:not(:has([data-testid="stFileUploaderFileData"])) svg {
+    display: none !important;
+}
+
+/* Convert empty uploader container into the "No Image Provided" dropzone */
 [data-testid="stFileUploaderDropzone"] {
     background-color: #ffffff !important;
     border: 2px dashed #cbd5e1 !important;
     border-radius: 12px !important;
-    padding: 3.5rem 1.5rem !important;
+    padding: 3rem 1.5rem !important;
     text-align: center !important;
     transition: all 0.2s ease-in-out !important;
     cursor: pointer !important;
@@ -82,7 +94,7 @@ html, body, [data-testid="stAppViewContainer"] {
     background-color: #eff6ff !important;
 }
 
-/* Format text inside the dropzone to show "No image provided" UI */
+/* Custom empty state instruction text */
 [data-testid="stFileUploaderDropzoneInstructions"] {
     display: flex !important;
     flex-direction: column !important;
@@ -102,6 +114,20 @@ html, body, [data-testid="stAppViewContainer"] {
     content: "Drag and drop an image here, or click to upload";
     font-size: 0.85rem !important;
     color: #64748b !important;
+}
+
+/* Remove Image Action Row */
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+.preview-header h5 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #334155;
 }
 
 /* Cards UI */
@@ -210,23 +236,29 @@ st.markdown("""
 uploaded_file = st.file_uploader(
     "",
     type=["jpg", "jpeg", "png", "webp"],
-    label_visibility="collapsed"
+    label_visibility="collapsed",
+    key=f"uploader_{st.session_state['uploader_key']}"
 )
 
 # ─── Prediction Logic & Visualisation ─────────────────────────────────────────
 
 if uploaded_file is not None:
-    # 1. Image Preview Box
+    # 1. Header & Remove Image Button
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown("<h5 style='margin-top: 0.4rem; color: #334155;'>Selected Image</h5>", unsafe_allow_html=True)
+    with col2:
+        st.button("Remove image", on_click=clear_file, type="secondary", use_container_width=True)
+
+    # 2. Image Display
     image = Image.open(uploaded_file).convert("RGB")
-    
-    st.markdown("##### Selected Image")
     st.image(image, use_container_width=True)
 
-    # 2. Preprocess Image
+    # 3. Preprocess Image
     img_array = np.array(image.resize(IMG_SIZE)).astype("float32")
     img_array = np.expand_dims(img_array, axis=0)
 
-    # 3. Model Inference
+    # 4. Model Inference
     with st.spinner("Analyzing visual features..."):
         predictions = model.predict(img_array, verbose=0)
 
@@ -235,7 +267,7 @@ if uploaded_file is not None:
     predicted_class = CLASS_NAMES[predicted_index]
     identified      = (confidence / 100.0) >= THRESHOLD
 
-    # 4. Result Display Card
+    # 5. Result Display Card
     badge_class = "badge-success" if identified else "badge-warning"
     badge_text  = "SPECIES IDENTIFIED" if identified else "LOW CONFIDENCE"
     display_title = predicted_class if identified else "Uncertain / Unrecognized"
