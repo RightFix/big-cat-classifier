@@ -1,244 +1,181 @@
 import os
-import streamlit as st
-import tensorflow as st_tf
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
+import streamlit as st
 from PIL import Image
+
+# ─── Page Configuration ────────────────────────────────────────────────────────
 
 st.set_page_config(
     page_title="Big Cat Classifier",
+    page_icon="🐾",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
+# ─── CSS Custom Styling ───────────────────────────────────────────────────────
+
 st.markdown("""
 <style>
-/* ── Reset Streamlit chrome ── */
+/* Reset Streamlit chrome */
 #MainMenu, footer, [data-testid="stToolbar"],
-[data-testid="stDecoration"], [data-testid="stStatusWidget"] { display: none !important; }
-header[data-testid="stHeader"] { background: transparent; }
-[data-testid="block-container"]  { padding-top: 2rem; max-width: 680px; }
+[data-testid="stDecoration"], [data-testid="stStatusWidget"] { 
+    display: none !important; 
+}
+header[data-testid="stHeader"] { 
+    background: transparent; 
+}
+[data-testid="block-container"] { 
+    padding-top: 2rem; 
+    max-width: 680px; 
+}
 
-/* ── Page base ── */
+/* Base Page Styling */
 html, body, [data-testid="stAppViewContainer"] {
-    background: #f6f8fa;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    color: #24292f;
+    background-color: #f8fafc;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #0f172a;
 }
 
-/* ── Header ── */
-.gh-header {
-    padding: 2rem 0 1.2rem;
-    border-bottom: 1px solid #d0d7de;
-    margin-bottom: 1.6rem;
+/* Clean Header */
+.app-header {
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
 }
-.gh-header-top {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.3rem;
-}
-.gh-icon {
-    width: 28px; height: 28px;
-    background: #24292f;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; color: #f6f8fa; font-weight: 700;
-    flex-shrink: 0;
-}
-.gh-repo-path {
-    font-size: 1.1rem;
-    color: #57606a;
-    font-weight: 400;
-}
-.gh-repo-path span {
-    color: #0969da;
-    font-weight: 600;
-}
-.gh-desc {
-    font-size: 0.82rem;
-    color: #57606a;
-    margin-top: 0.2rem;
-    padding-left: 2.5rem;
-}
-.gh-badge {
-    display: inline-block;
-    padding: 0.15rem 0.55rem;
-    border-radius: 2em;
-    font-size: 0.7rem;
-    font-weight: 600;
-    background: #ddf4ff;
-    color: #0969da;
-    border: 1px solid #b6e3ff;
-    margin-left: 0.5rem;
-    vertical-align: middle;
-}
-
-/* ── GitHub-style drop zone ── */
-.gh-drop-label {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #24292f;
-    margin-bottom: 0.5rem;
-}
-.gh-drop-hint {
-    font-size: 0.72rem;
-    color: #57606a;
-    margin-bottom: 0.6rem;
-}
-
-/* Hide the default Streamlit uploader and overlay our own zone on top */
-[data-testid="stFileUploader"] {
-    position: relative;
-}
-[data-testid="stFileUploaderDropzone"] {
-    background: #ffffff !important;
-    border: 2px dashed #d0d7de !important;
-    border-radius: 6px !important;
-    padding: 2.5rem 1.5rem !important;
-    text-align: center !important;
-    transition: border-color 0.15s, background 0.15s !important;
-    cursor: pointer !important;
-}
-[data-testid="stFileUploaderDropzone"]:hover {
-    border-color: #0969da !important;
-    background: #f0f6ff !important;
-}
-[data-testid="stFileUploaderDropzoneInstructions"] div span {
-    font-size: 0.82rem !important;
-    color: #57606a !important;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif !important;
-}
-[data-testid="stFileUploaderDropzoneInstructions"] div span:first-child {
-    font-size: 0.9rem !important;
-    font-weight: 600 !important;
-    color: #0969da !important;
-}
-/* Browse button */
-[data-testid="stFileUploaderDropzone"] button {
-    background: #f6f8fa !important;
-    border: 1px solid #d0d7de !important;
-    border-radius: 6px !important;
-    color: #24292f !important;
-    font-size: 0.8rem !important;
-    font-weight: 500 !important;
-    padding: 0.3rem 0.9rem !important;
-    margin-top: 0.6rem !important;
-    cursor: pointer !important;
-    transition: background 0.12s !important;
-}
-[data-testid="stFileUploaderDropzone"] button:hover {
-    background: #eaeef2 !important;
-}
-
-/* ── Image preview card (GitHub attachment style) ── */
-.preview-card {
-    background: #ffffff;
-    border: 1px solid #d0d7de;
-    border-radius: 6px;
-    overflow: hidden;
-    margin-bottom: 1.2rem;
-}
-.preview-card-header {
-    background: #f6f8fa;
-    border-bottom: 1px solid #d0d7de;
-    padding: 0.5rem 0.9rem;
-    font-size: 0.75rem;
-    color: #57606a;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-}
-.preview-card-body { padding: 0.75rem; }
-
-/* ── Result card ── */
-.result-card {
-    background: #ffffff;
-    border: 1px solid #d0d7de;
-    border-radius: 6px;
-    overflow: hidden;
-    margin-bottom: 1.2rem;
-}
-.result-card-header {
-    padding: 0.6rem 1rem;
-    font-size: 0.78rem;
-    font-weight: 600;
-    border-bottom: 1px solid #d0d7de;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.result-identified { background: #dafbe1; color: #116329; border-color: #aceebb; }
-.result-unknown    { background: #fff8c5; color: #7d4e00; border-color: #e3b341; }
-
-.result-card-body { padding: 1rem; }
-
-.result-species {
+.app-title {
     font-size: 1.5rem;
     font-weight: 700;
-    color: #24292f;
-    margin-bottom: 0.2rem;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
-.result-conf-line {
-    font-size: 0.8rem;
-    color: #57606a;
-}
-.result-conf-val {
-    font-weight: 600;
-    color: #0969da;
+.app-desc {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin-top: 0.35rem;
 }
 
-/* ── Probability section ── */
-.prob-title {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #57606a;
-    margin: 1rem 0 0.7rem;
-    padding-top: 0.8rem;
-    border-top: 1px solid #d0d7de;
+/* Modern Drag & Drop Zone Styling */
+[data-testid="stFileUploader"] {
+    position: relative;
+    margin-bottom: 1.5rem;
 }
-.prob-row { margin-bottom: 0.7rem; }
+[data-testid="stFileUploaderDropzone"] {
+    background-color: #ffffff !important;
+    border: 2px dashed #cbd5e1 !important;
+    border-radius: 12px !important;
+    padding: 2rem 1.5rem !important;
+    transition: all 0.2s ease-in-out !important;
+}
+[data-testid="stFileUploaderDropzone"]:hover {
+    border-color: #2563eb !important;
+    background-color: #eff6ff !important;
+}
+/* Style text inside dropzone */
+[data-testid="stFileUploaderDropzoneInstructions"] {
+    color: #475569 !important;
+}
+[data-testid="stFileUploaderDropzoneInstructions"] span {
+    font-size: 0.9rem !important;
+}
+/* Style Browse Files Button */
+[data-testid="stFileUploaderDropzone"] button {
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    color: #1e293b !important;
+    font-weight: 500 !important;
+    font-size: 0.85rem !important;
+    padding: 0.4rem 1rem !important;
+    transition: all 0.15s ease !important;
+}
+[data-testid="stFileUploaderDropzone"] button:hover {
+    background-color: #f1f5f9 !important;
+    border-color: #94a3b8 !important;
+}
+
+/* Cards UI */
+.custom-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+.badge-success {
+    background-color: #dcfce7;
+    color: #15803d;
+}
+.badge-warning {
+    background-color: #fef9c3;
+    color: #a16207;
+}
+
+.species-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.25rem;
+}
+.conf-subtitle {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 1.25rem;
+}
+
+/* Custom Progress Bars */
 .prob-meta {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-bottom: 0.3rem;
 }
-.prob-name { font-size: 0.76rem; color: #24292f; font-weight: 500; }
-.prob-pct  { font-size: 0.76rem; color: #57606a; }
 .prob-track {
-    height: 6px;
-    background: #eaeef2;
-    border-radius: 3px;
+    height: 8px;
+    background-color: #f1f5f9;
+    border-radius: 4px;
     overflow: hidden;
+    margin-bottom: 0.85rem;
 }
-.prob-fill     { height: 6px; border-radius: 3px; background: #0969da; }
-.prob-fill-top { height: 6px; border-radius: 3px; background: #1a7f37; }
-.prob-fill-low { height: 6px; border-radius: 3px; background: #9a6700; }
+.prob-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
 
-/* ── Empty state ── */
+/* Empty State */
 .empty-state {
     background: #ffffff;
-    border: 1px solid #d0d7de;
-    border-radius: 6px;
-    padding: 2.5rem;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 2.5rem 1rem;
     text-align: center;
+    color: #64748b;
     margin-top: 1rem;
 }
-.empty-state-icon { font-size: 2rem; margin-bottom: 0.5rem; }
-.empty-state-text { font-size: 0.85rem; color: #57606a; }
-.empty-state-sub  { font-size: 0.75rem; color: #8c959f; margin-top: 0.3rem; }
 
-/* ── Footer ── */
-.gh-footer {
-    border-top: 1px solid #d0d7de;
-    padding: 1.2rem 0;
-    margin-top: 2rem;
-    font-size: 0.72rem;
-    color: #8c959f;
+/* Footer */
+.app-footer {
+    border-top: 1px solid #e2e8f0;
+    padding: 1.5rem 0;
+    margin-top: 2.5rem;
+    font-size: 0.75rem;
+    color: #94a3b8;
     text-align: center;
 }
-.gh-footer a { color: #0969da; text-decoration: none; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -254,132 +191,117 @@ THRESHOLD   = 0.80
 @st.cache_resource
 def load_model():
     if not os.path.exists(MODEL_PATH):
-        st.error(f"Model not found: {MODEL_PATH}")
+        st.error(f"Model file not found at path: `{MODEL_PATH}`")
         st.stop()
     return tf.keras.models.load_model(MODEL_PATH)
 
 model = load_model()
 
-# ─── Header ───────────────────────────────────────────────────────────────────
+# ─── Header Section ───────────────────────────────────────────────────────────
 
 st.markdown("""
-<div class="gh-header">
-    <div class="gh-header-top">
-        <div class="gh-icon">BC</div>
-        <div class="gh-repo-path">
-            RightFix / <span>big-cat-classifier</span>
-            <span class="gh-badge">Public</span>
-        </div>
+<div class="app-header">
+    <div class="app-title">
+        🐾 Big Cat Classifier
     </div>
-    <div class="gh-desc">
-        Transfer learning classifier for big cat species &nbsp;&middot;&nbsp;
-        MobileNetV3 &nbsp;&middot;&nbsp; 4 species &nbsp;&middot;&nbsp; 98% accuracy
+    <div class="app-desc">
+        Deep learning transfer model (MobileNetV3) tuned for distinguishing between Tigers and Leopard species.
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# ─── Drop Zone ────────────────────────────────────────────────────────────────
-
-st.markdown('<div class="gh-drop-label">Upload a cat image to classify</div>', unsafe_allow_html=True)
-st.markdown('<div class="gh-drop-hint">Drag and drop your file here, or click to browse. Supports JPG and PNG.</div>', unsafe_allow_html=True)
+# ─── Drag & Drop Upload Zone ──────────────────────────────────────────────────
 
 uploaded_file = st.file_uploader(
-    "",
-    type=["jpg", "jpeg", "png"],
-    label_visibility="collapsed"
+    "Upload an image of a big cat",
+    type=["jpg", "jpeg", "png", "webp"],
+    help="Drag and drop or select an image file to classify",
+    label_visibility="visible"
 )
 
-# ─── Inference ────────────────────────────────────────────────────────────────
+# ─── Prediction Logic & Visualisation ─────────────────────────────────────────
 
 if uploaded_file is not None:
+    # 1. Image Preview Box
     image = Image.open(uploaded_file).convert("RGB")
-
-    # Image preview card
-    st.markdown(f"""
-    <div class="preview-card">
-        <div class="preview-card-header">
-            &#128247; &nbsp; {uploaded_file.name}
-        </div>
-        <div class="preview-card-body">
-    """, unsafe_allow_html=True)
+    
+    st.markdown("##### Selected Image")
     st.image(image, use_container_width=True)
-    st.markdown("</div></div>", unsafe_allow_html=True)
 
-    # Preprocess + predict
+    # 2. Preprocess Image
     img_array = np.array(image.resize(IMG_SIZE)).astype("float32")
     img_array = np.expand_dims(img_array, axis=0)
 
-    with st.spinner("Classifying..."):
+    # 3. Model Inference
+    with st.spinner("Analyzing visual features..."):
         predictions = model.predict(img_array, verbose=0)
 
     predicted_index = np.argmax(predictions[0])
     confidence      = predictions[0][predicted_index] * 100
     predicted_class = CLASS_NAMES[predicted_index]
-    identified      = confidence >= THRESHOLD * 100
+    identified      = (confidence / 100.0) >= THRESHOLD
 
-    # Result card
-    if identified:
-        header_cls  = "result-identified"
-        header_text = "Species identified"
-        species_out = predicted_class
-    else:
-        header_cls  = "result-unknown"
-        header_text = "Low confidence — unable to identify"
-        species_out = "Not a Leopard or Tiger"
+    # 4. Result Display Card
+    badge_class = "badge-success" if identified else "badge-warning"
+    badge_text  = "SPECIES IDENTIFIED" if identified else "LOW CONFIDENCE"
+    display_title = predicted_class if identified else "Uncertain / Unrecognized"
 
     st.markdown(f"""
-    <div class="result-card">
-        <div class="result-card-header {header_cls}">
-            <span>{header_text}</span>
-            <span>{confidence:.1f}% confidence</span>
+    <div class="custom-card">
+        <span class="status-badge {badge_class}">{badge_text}</span>
+        <div class="species-title">{display_title}</div>
+        <div class="conf-subtitle">
+            Highest match confidence: <strong>{confidence:.2f}%</strong> &nbsp;•&nbsp; Required threshold: {int(THRESHOLD*100)}%
         </div>
-        <div class="result-card-body">
-            <div class="result-species">{species_out}</div>
-            <div class="result-conf-line">
-                Model confidence: <span class="result-conf-val">{confidence:.2f}%</span>
-                &nbsp;&middot;&nbsp; Threshold: {int(THRESHOLD*100)}%
-            </div>
-            <div class="prob-title">All class probabilities</div>
+        <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 1rem 0;" />
+        <div style="font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 0.75rem;">
+            Class Probabilities
+        </div>
     """, unsafe_allow_html=True)
 
-    for i, (name, prob) in enumerate(zip(CLASS_NAMES, predictions[0])):
+    # Render probability bars dynamically
+    for name, prob in zip(CLASS_NAMES, predictions[0]):
         pct = prob * 100
-        if i == predicted_index and identified:
-            fill = "prob-fill-top"
-        elif i == predicted_index:
-            fill = "prob-fill-low"
+        is_top = (name == predicted_class)
+        
+        # Color coding logic
+        if is_top and identified:
+            bar_color = "#2563eb"  # Primary Blue
+        elif is_top:
+            bar_color = "#eab308"  # Amber for low confidence top match
         else:
-            fill = "prob-fill"
+            bar_color = "#cbd5e1"  # Muted slate grey for lower options
+
         st.markdown(f"""
-        <div class="prob-row">
+        <div>
             <div class="prob-meta">
-                <span class="prob-name">{name}</span>
-                <span class="prob-pct">{pct:.2f}%</span>
+                <span style="color: {'#0f172a' if is_top else '#64748b'};">{name}</span>
+                <span style="color: {'#2563eb' if is_top else '#64748b'};">{pct:.2f}%</span>
             </div>
             <div class="prob-track">
-                <div class="{fill}" style="width:{pct:.1f}%"></div>
+                <div class="prob-fill" style="width: {pct:.1f}%; background-color: {bar_color};"></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("</div></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 else:
+    # Empty State when no image is selected
     st.markdown("""
     <div class="empty-state">
-        <div class="empty-state-icon">&#128247;</div>
-        <div class="empty-state-text">No image uploaded yet</div>
-        <div class="empty-state-sub">Drop an image above to run the classifier</div>
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📷</div>
+        <div style="font-weight: 500; font-size: 0.95rem; color: #334155;">No image provided</div>
+        <div style="font-size: 0.8rem; margin-top: 0.25rem;">
+            Upload or drop a picture into the container above to view the analysis.
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-# ─── Footer ───────────────────────────────────────────────────────────────────
+# ─── Clean App Footer ─────────────────────────────────────────────────────────
 
 st.markdown("""
-<div class="gh-footer">
-    Big Cat Classifier &nbsp;&middot;&nbsp;
-    MobileNetV3 Transfer Learning &nbsp;&middot;&nbsp;
-    GET 324 Group C10 &nbsp;&middot;&nbsp;
-    <a href="https://github.com/RightFix/big-cat-classifier" target="_blank">View on GitHub</a>
+<div class="app-footer">
+    Big Cat Classifier &nbsp;•&nbsp; MobileNetV3 Neural Network &nbsp;•&nbsp; Multi-Class Inference Engine
 </div>
 """, unsafe_allow_html=True)
